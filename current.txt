@@ -1,0 +1,311 @@
+# google_compute_health_check.site-health-check:
+resource "google_compute_health_check" "site-health-check" {
+    check_interval_sec  = 5
+    creation_timestamp  = "2024-01-11T06:48:09.412-08:00"
+    healthy_threshold   = 2
+    id                  = "projects/alfproject-358913/global/healthChecks/site-health-check"
+    name                = "site-health-check"
+    project             = "alfproject-358913"
+    self_link           = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/healthChecks/site-health-check"
+    timeout_sec         = 5
+    type                = "TCP"
+    unhealthy_threshold = 10
+
+    log_config {
+        enable = false
+    }
+
+    tcp_health_check {
+        port         = 80
+        proxy_header = "NONE"
+    }
+}
+
+# google_compute_instance_group_manager.site-mig:
+resource "google_compute_instance_group_manager" "site-mig" {
+    base_instance_name             = "site"
+    fingerprint                    = "xofKoEw4SkU="
+    id                             = "projects/alfproject-358913/zones/us-east5-c/instanceGroupManagers/site-mig"
+    instance_group                 = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/zones/us-east5-c/instanceGroups/site-mig"
+    list_managed_instances_results = "PAGELESS"
+    name                           = "site-mig"
+    project                        = "alfproject-358913"
+    self_link                      = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/zones/us-east5-c/instanceGroupManagers/site-mig"
+    status                         = [
+        {
+            is_stable      = true
+            stateful       = [
+                {
+                    has_stateful_config  = false
+                    per_instance_configs = [
+                        {
+                            all_effective = true
+                        },
+                    ]
+                },
+            ]
+            version_target = [
+                {
+                    is_reached = true
+                },
+            ]
+        },
+    ]
+    target_pools                   = []
+    target_size                    = 2
+    wait_for_instances             = false
+    wait_for_instances_status      = "STABLE"
+    zone                           = "us-east5-c"
+
+    auto_healing_policies {
+        health_check      = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/healthChecks/site-health-check"
+        initial_delay_sec = 300
+    }
+
+    instance_lifecycle_policy {
+        force_update_on_repair = "NO"
+    }
+
+    named_port {
+        name = "http"
+        port = 80
+    }
+
+    update_policy {
+        max_surge_fixed         = 1
+        max_surge_percent       = 0
+        max_unavailable_fixed   = 1
+        max_unavailable_percent = 0
+        minimal_action          = "REPLACE"
+        replacement_method      = "SUBSTITUTE"
+        type                    = "OPPORTUNISTIC"
+    }
+
+    version {
+        instance_template = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/instanceTemplates/site-vm-template"
+    }
+}
+
+# google_compute_instance_template.site-vm-template:
+resource "google_compute_instance_template" "site-vm-template" {
+    can_ip_forward          = false
+    effective_labels        = {}
+    id                      = "projects/alfproject-358913/global/instanceTemplates/site-vm-template"
+    instance_description    = "site vm"
+    machine_type            = "e2-medium"
+    metadata                = {}
+    metadata_fingerprint    = "0OzSqQsgqcU="
+    metadata_startup_script = "sudo apt update && sudo apt -y install apache2;"
+    name                    = "site-vm-template"
+    project                 = "alfproject-358913"
+    region                  = "us-east5"
+    self_link               = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/instanceTemplates/site-vm-template"
+    self_link_unique        = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/instanceTemplates/site-vm-template?uniqueId=1934921450464100698"
+    tags                    = []
+    terraform_labels        = {}
+
+    disk {
+        auto_delete           = true
+        boot                  = true
+        device_name           = "persistent-disk-0"
+        disk_size_gb          = 0
+        disk_type             = "pd-standard"
+        interface             = "SCSI"
+        labels                = {}
+        mode                  = "READ_WRITE"
+        provisioned_iops      = 0
+        resource_manager_tags = {}
+        resource_policies     = []
+        source_image          = "projects/debian-cloud/global/images/family/debian-11"
+        type                  = "PERSISTENT"
+    }
+
+    network_interface {
+        internal_ipv6_prefix_length = 0
+        name                        = "nic0"
+        network                     = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/networks/linux-vpc"
+        queue_count                 = 0
+        subnetwork                  = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/regions/us-east5/subnetworks/another-us-east5"
+        subnetwork_project          = "alfproject-358913"
+    }
+
+    scheduling {
+        automatic_restart   = true
+        min_node_cpus       = 0
+        on_host_maintenance = "MIGRATE"
+        preemptible         = false
+        provisioning_model  = "STANDARD"
+    }
+
+    service_account {
+        email  = "site-sa@alfproject-358913.iam.gserviceaccount.com"
+        scopes = [
+            "https://www.googleapis.com/auth/cloud-platform",
+        ]
+    }
+}
+
+# google_service_account.site-sa:
+resource "google_service_account" "site-sa" {
+    account_id   = "site-sa"
+    disabled     = false
+    display_name = "Service Account for site VMs"
+    email        = "site-sa@alfproject-358913.iam.gserviceaccount.com"
+    id           = "projects/alfproject-358913/serviceAccounts/site-sa@alfproject-358913.iam.gserviceaccount.com"
+    member       = "serviceAccount:site-sa@alfproject-358913.iam.gserviceaccount.com"
+    name         = "projects/alfproject-358913/serviceAccounts/site-sa@alfproject-358913.iam.gserviceaccount.com"
+    project      = "alfproject-358913"
+    unique_id    = "107514004326985696657"
+}
+
+
+# module.site-lb.google_compute_backend_service.default["default"]:
+resource "google_compute_backend_service" "default" {
+    affinity_cookie_ttl_sec         = 0
+    connection_draining_timeout_sec = 300
+    creation_timestamp              = "2024-01-11T06:49:06.819-08:00"
+    custom_request_headers          = []
+    custom_response_headers         = []
+    enable_cdn                      = false
+    fingerprint                     = "araoOD7jjN0="
+    generated_id                    = 3655095224477303300
+    health_checks                   = [
+        "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/healthChecks/site-lb-hc-default",
+    ]
+    id                              = "projects/alfproject-358913/global/backendServices/site-lb-backend-default"
+    load_balancing_scheme           = "EXTERNAL"
+    name                            = "site-lb-backend-default"
+    port_name                       = "http"
+    project                         = "alfproject-358913"
+    protocol                        = "HTTP"
+    self_link                       = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/backendServices/site-lb-backend-default"
+    session_affinity                = "NONE"
+    timeout_sec                     = 10
+
+    backend {
+        balancing_mode               = "UTILIZATION"
+        capacity_scaler              = 1
+        group                        = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/zones/us-east5-c/instanceGroups/site-mig"
+        max_connections              = 0
+        max_connections_per_endpoint = 0
+        max_connections_per_instance = 0
+        max_rate                     = 0
+        max_rate_per_endpoint        = 0
+        max_rate_per_instance        = 0
+        max_utilization              = 0
+    }
+
+    log_config {
+        enable      = true
+        sample_rate = 1
+    }
+}
+
+# module.site-lb.google_compute_firewall.default-hc[0]:
+resource "google_compute_firewall" "default-hc" {
+    creation_timestamp = "2024-01-11T06:54:30.880-08:00"
+    destination_ranges = []
+    direction          = "INGRESS"
+    disabled           = false
+    id                 = "projects/alfproject-358913/global/firewalls/site-lb-hc-0"
+    name               = "site-lb-hc-0"
+    network            = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/networks/linux-vpc"
+    priority           = 1000
+    project            = "alfproject-358913"
+    self_link          = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/firewalls/site-lb-hc-0"
+    source_ranges      = [
+        "130.211.0.0/22",
+        "35.191.0.0/16",
+    ]
+
+    allow {
+        ports    = [
+            "80",
+        ]
+        protocol = "tcp"
+    }
+}
+
+# module.site-lb.google_compute_global_address.default[0]:
+resource "google_compute_global_address" "default" {
+    address            = "34.49.50.208"
+    address_type       = "EXTERNAL"
+    creation_timestamp = "2024-01-11T06:48:09.343-08:00"
+    effective_labels   = {}
+    id                 = "projects/alfproject-358913/global/addresses/site-lb-address"
+    label_fingerprint  = "42WmSpB8rSM="
+    labels             = {}
+    name               = "site-lb-address"
+    prefix_length      = 0
+    project            = "alfproject-358913"
+    self_link          = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/addresses/site-lb-address"
+    terraform_labels   = {}
+}
+
+# module.site-lb.google_compute_global_forwarding_rule.http[0]:
+resource "google_compute_global_forwarding_rule" "http" {
+    allow_psc_global_access = false
+    effective_labels        = {}
+    id                      = "projects/alfproject-358913/global/forwardingRules/site-lb"
+    ip_address              = "34.49.50.208"
+    ip_protocol             = "TCP"
+    label_fingerprint       = "42WmSpB8rSM="
+    labels                  = {}
+    load_balancing_scheme   = "EXTERNAL"
+    name                    = "site-lb"
+    port_range              = "80-80"
+    project                 = "alfproject-358913"
+    self_link               = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/forwardingRules/site-lb"
+    source_ip_ranges        = []
+    target                  = "https://www.googleapis.com/compute/beta/projects/alfproject-358913/global/targetHttpProxies/site-lb-http-proxy"
+    terraform_labels        = {}
+}
+
+# module.site-lb.google_compute_health_check.default["default"]:
+resource "google_compute_health_check" "default" {
+    check_interval_sec  = 5
+    creation_timestamp  = "2024-01-11T06:48:54.919-08:00"
+    healthy_threshold   = 2
+    id                  = "projects/alfproject-358913/global/healthChecks/site-lb-hc-default"
+    name                = "site-lb-hc-default"
+    project             = "alfproject-358913"
+    self_link           = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/healthChecks/site-lb-hc-default"
+    timeout_sec         = 5
+    type                = "HTTP"
+    unhealthy_threshold = 2
+
+    http_health_check {
+        port         = 80
+        proxy_header = "NONE"
+        request_path = "/"
+    }
+
+    log_config {
+        enable = false
+    }
+}
+
+# module.site-lb.google_compute_target_http_proxy.default[0]:
+resource "google_compute_target_http_proxy" "default" {
+    creation_timestamp          = "2024-01-11T06:49:49.544-08:00"
+    http_keep_alive_timeout_sec = 0
+    id                          = "projects/alfproject-358913/global/targetHttpProxies/site-lb-http-proxy"
+    name                        = "site-lb-http-proxy"
+    project                     = "alfproject-358913"
+    proxy_bind                  = false
+    proxy_id                    = 585002762493607700
+    self_link                   = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/targetHttpProxies/site-lb-http-proxy"
+    url_map                     = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/urlMaps/site-lb-url-map"
+}
+
+# module.site-lb.google_compute_url_map.default[0]:
+resource "google_compute_url_map" "default" {
+    creation_timestamp = "2024-01-11T06:49:38.413-08:00"
+    default_service    = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/backendServices/site-lb-backend-default"
+    fingerprint        = "cMgBED7GZSA="
+    id                 = "projects/alfproject-358913/global/urlMaps/site-lb-url-map"
+    map_id             = 3663914523205418500
+    name               = "site-lb-url-map"
+    project            = "alfproject-358913"
+    self_link          = "https://www.googleapis.com/compute/v1/projects/alfproject-358913/global/urlMaps/site-lb-url-map"
+}

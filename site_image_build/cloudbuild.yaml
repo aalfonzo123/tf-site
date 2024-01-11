@@ -1,0 +1,5 @@
+steps:
+- name: 'gcr.io/alfproject-358913/packer'
+  args:
+  - build
+  - site.pkr.hcl
