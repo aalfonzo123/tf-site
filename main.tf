@@ -29,6 +29,22 @@ variable "project" {
   default     = "alfproject-358913"
 }
 
+variable "host_project" {
+  type        = string
+  description = "shared vpc host project"
+  default     = "alfproject-358913"
+}
+
+variable "source_image" {
+  type        = string
+  description = "source_image for site VMs"
+  default =  "projects/alfproject-358913/global/images/image-simple-1" 
+  # "projects/alfproject-358913/global/images/site-1704998583" #"debian-cloud/debian-11"
+}
+
+
+# ---------------
+
 resource "google_service_account" "site-sa" {
   account_id   = "site-sa"
   display_name = "Service Account for site VMs"
@@ -40,7 +56,6 @@ resource "google_compute_instance_template" "site-vm-template" {
   instance_description    = "site vm"
   machine_type            = "e2-medium"
   region                  = var.region
-  metadata_startup_script = "sudo apt update && sudo apt -y install apache2;"
 
   scheduling {
     automatic_restart   = true
@@ -48,7 +63,7 @@ resource "google_compute_instance_template" "site-vm-template" {
   }
 
   disk {
-    source_image = "debian-cloud/debian-11"
+    source_image = var.source_image
     auto_delete  = true
     boot         = true
   }
@@ -69,15 +84,14 @@ resource "google_compute_instance_template" "site-vm-template-v2" {
   instance_description    = "site vm"
   machine_type            = "e2-medium"
   region                  = var.region
-  metadata_startup_script = "#! /bin/bash\n     sudo apt-get update\n     sudo apt-get install apache2 -y\n     sudo a2ensite default-ssl\n     sudo a2enmod ssl\n     vm_hostname=\"$(curl -H \"Metadata-Flavor:Google\" \\\n   http://169.254.169.254/computeMetadata/v1/instance/name)\"\n   sudo echo \"Page served from: $vm_hostname\" | \\\n   tee /var/www/html/index.html\n   sudo systemctl restart apache2"
-
+ 
   scheduling {
     automatic_restart   = true
     on_host_maintenance = "MIGRATE"
   }
 
   disk {
-    source_image = "debian-cloud/debian-11"
+    source_image = var.source_image
     auto_delete  = true
     boot         = true
   }
@@ -118,7 +132,7 @@ resource "google_compute_instance_group_manager" "site-mig" {
   zone               = var.zone
 
   version {
-    instance_template = google_compute_instance_template.site-vm-template-v2.self_link_unique
+    instance_template = google_compute_instance_template.site-vm-template.self_link_unique
   }
 
   # all_instances_config {
@@ -140,7 +154,7 @@ resource "google_compute_instance_group_manager" "site-mig" {
 
   auto_healing_policies {
     health_check      = google_compute_health_check.site-health-check.id
-    initial_delay_sec = 300
+    initial_delay_sec = 60
   }
 
   update_policy {
@@ -158,7 +172,7 @@ module "site-lb" {
   name    = "site-lb"
   project = var.project
   #target_tags       = ["allow-shared-vpc-mig"]
-  #firewall_projects = [var.host_project]
+  firewall_projects = [var.host_project]
   firewall_networks     = [var.network]
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
