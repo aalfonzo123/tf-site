@@ -38,10 +38,15 @@ variable "host_project" {
 variable "source_image" {
   type        = string
   description = "source_image for site VMs"
-  default =  "projects/alfproject-358913/global/images/image-simple-1" 
+  default =  "projects/alfproject-358913/global/images/site-1705065674" 
   # "projects/alfproject-358913/global/images/site-1704998583" #"debian-cloud/debian-11"
 }
 
+variable "source_image_v2" {
+  type        = string
+  description = "source_image for site VMs v2"
+  default = "projects/alfproject-358913/global/images/site-1705064799" 
+}
 
 # ---------------
 
@@ -91,7 +96,7 @@ resource "google_compute_instance_template" "site-vm-template-v2" {
   }
 
   disk {
-    source_image = var.source_image
+    source_image = var.source_image_v2
     auto_delete  = true
     boot         = true
   }
